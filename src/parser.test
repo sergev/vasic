@@ -1,0 +1,9 @@
+var x;
+var y, z;
+
+procedure foo ()
+endprocedure
+
+function bar ()
+	var a;
+endfunction
