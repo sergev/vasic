@@ -1,0 +1,247 @@
+/*
+ * Синтаксический анализатор для языка Васик.
+ * Copyright (GPL) 2008 Serge Vakulenko <serge@vak.ru>
+ */
+%include {import node;}
+%default_type {node_t}
+%token_type {node_t}
+%token_prefix NODE_
+
+%left COMMA DOT SEMICOLON COLON LABEL LPAR RPAR LBRA RBRA
+	PLUS MINUS MUL DIV MOD GT LT EQUAL GE LE NEQ QUESTION NUMBER .
+
+%left AND BREAK CONTINUE DO EACH ELSE ELSEIF ENDDO ENDFUNCTION ENDIF
+	ENDPROCEDURE ENDTRY EXCEPT EXECUTE EXPORT FOR FUNCTION GOTO IF
+	IN NEW NOT OR PROCEDURE RAISE RETURN THEN TO TRY WHILE .
+
+%left ARG .
+
+%syntax_error {
+	lexeme_t lexeme = cast(lexeme_t) TOKEN;
+	if (lexeme)
+		writefln ("%d:%d: syntax error at `%s'",
+			lexeme.line, lexeme.column, lexeme.text);
+	else
+		writefln ("syntax error");
+}
+
+/*
+ * Программа состоит из:
+ * - раздела определения переменных;
+ * - раздела процедур и функций;
+ * - раздела исполняемых операторов.
+ */
+program ::= vardecls(A) procs(B) operators(C) .
+{
+	if (A) {
+		writefln ("vardecls = ");
+		A.print (1);
+	}
+	if (B) {
+		writefln ("procs = ");
+		B.print (1);
+	}
+	if (C) {
+		writefln ("operators = ");
+		C.print (1);
+	}
+}
+
+/*--------------------------------------------
+ * Определения переменных.
+ */
+vardecls ::= .
+vardecls(A) ::= vardecls(B) vardecl(C) .
+{
+	if (B) A = new binary_node_t (NODE_COMMA, B, C);
+	else   A = C;
+}
+
+vardecl(A) ::= VAR varnames(B) SEMICOLON .
+{
+	A = B;
+}
+
+varnames(A) ::= NAME(B) export .
+{
+	A = B;
+}
+
+varnames(A) ::= varnames(B) COMMA NAME(C) export .
+{
+	A = new binary_node_t (NODE_COMMA, B, C);
+}
+
+export ::= .
+export ::= EXPORT . // TODO
+
+/*--------------------------------------------
+ * Описания процедур и функций.
+ */
+procs ::= .
+procs(A) ::= procs(B) procedure(C) .
+{
+	if (B) A = new binary_node_t (NODE_COMMA, B, C);
+	else   A = C;
+}
+
+procs(A) ::= procs(B) function(C) .
+{
+	if (B) A = new binary_node_t (NODE_COMMA, B, C);
+	else   A = C;
+}
+
+procedure(A) ::= PROCEDURE NAME(B) LPAR args(C) RPAR export(D)
+	vardecls(E) operators(F) ENDPROCEDURE .
+{
+	A = new binary_node_t (NODE_PROCEDURE,
+		new binary_node_t (NODE_COMMA, B, D),
+		new binary_node_t (NODE_COMMA, C,
+			new binary_node_t (NODE_COMMA, E, F)));
+}
+
+function(A) ::= FUNCTION NAME(B) LPAR args(C) RPAR export(D)
+	vardecls(E) operators(F) ENDFUNCTION .
+{
+	A = new binary_node_t (NODE_FUNCTION,
+		new binary_node_t (NODE_COMMA, B, D),
+		new binary_node_t (NODE_COMMA, C,
+			new binary_node_t (NODE_COMMA, E, F)));
+}
+
+args ::= .
+
+args(A) ::= arg(B) .
+{
+	A = B;
+}
+
+args(A) ::= args(B) COMMA arg(C) .
+{
+	A = new binary_node_t (NODE_COMMA, B, C);
+}
+
+arg(A) ::= value(B) NAME(C) defvalue(D) .
+{
+	A = new binary_node_t (NODE_ARG, C,
+		new binary_node_t (NODE_COMMA, B, D));
+}
+
+value ::= .
+value ::= VALUE .
+
+defvalue ::= .
+defvalue ::= EQUAL expression.
+
+/*--------------------------------------------
+ * Исполняемые операторы.
+ */
+operators ::= .
+operators ::= operator SEMICOLON operators .
+operators ::= LABEL COLON operators .
+
+operator ::= .
+operator ::= NAME EQUAL expression .
+operator ::= term DOT NAME EQUAL expression .
+operator ::= term LBRA expressions RBRA EQUAL expression .
+operator ::= FOR NAME EQUAL expression TO expression
+	DO operators ENDDO .
+operator ::= FOR EACH NAME IN expression
+	DO operators ENDDO .
+operator ::= BREAK .
+operator ::= CONTINUE .
+operator ::= RETURN optional_expression .
+operator ::= IF expression THEN operators elsif else ENDIF .
+operator ::= GOTO LABEL .
+operator ::= WHILE expression DO operators ENDDO .
+operator ::= TRY operators EXCEPT operators ENDTRY .
+operator ::= RAISE optional_expression .
+operator ::= EXECUTE LPAR expression RPAR .
+operator ::= ADDHANDLER expression COMMA expression .
+operator ::= REMOVEHANDLER expression COMMA expression .
+
+elsif ::= .
+elsif ::= elsif ELSIF expression THEN operators .
+
+else ::= .
+else ::= ELSE operators .
+
+expressions ::= expression .
+expressions ::=	expressions COMMA expression .
+
+optional_expression ::= .
+optional_expression ::= expression .
+
+optional_expressions ::= .
+optional_expressions ::= expressions .
+
+/*--------------------------------------------
+ * Выражения.
+ */
+expression ::= term .
+expression ::= expression AND expression .
+expression ::= expression OR expression .
+expression ::= expression PLUS expression .
+expression ::= expression MINUS expression .
+expression ::= expression MUL expression .
+expression ::= expression DIV expression .
+expression ::= expression MOD expression .
+expression ::= expression GE expression .
+expression ::= expression GT expression .
+expression ::= expression EQUAL expression .
+expression ::= expression NEQ expression .
+expression ::= expression LE expression .
+expression ::= expression LT expression .
+
+term ::= NAME .
+term ::= NUMBER .
+term ::= STRING .
+term ::= DATE .
+term ::= TRUE .
+term ::= FALSE .
+term ::= UNDEFINED .
+term ::= LPAR expression RPAR .
+term ::= QUESTION LPAR expression COMMA expression COMMA expression RPAR .
+term ::= MINUS term .
+term ::= PLUS term .
+term ::= NOT term .
+term ::= term DOT NAME .
+term ::= NAME LPAR optional_expressions RPAR .
+term ::= term DOT NAME LPAR optional_expressions RPAR .
+term ::= term LBRA expressions RBRA .
+term ::= NEW NAME .
+term ::= NEW NAME LPAR optional_expressions RPAR.
+term ::= NEW LPAR expressions RPAR.
+
+%code {
+	import node;
+	import scanner;
+	import std.stdio;
+
+	unittest {
+		writefln ("Parser unit test started.");
+		scanner_t scanner = new scanner_t ("parser.test");
+		parser_t parser = new parser_t ();
+		//parser.trace (std.stdio.stdout, "*** ");
+		for (;;) {
+			scanner.forward ();
+			if (! scanner.token)
+				break;
+			if (scanner.token.type < 0) {
+				writefln ("%s:%d:%d: %s", scanner.filename,
+					scanner.token.line, scanner.token.column,
+					scanner.token.text);
+				break;
+			}
+			parser.parse (scanner.token.type, scanner.token);
+		}
+		parser.parse (0, null);
+	}
+
+	debug (parser) {
+		void main()
+		{
+			writefln ("Parser unit test finished.");
+		}
+	}
+}
