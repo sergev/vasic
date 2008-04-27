@@ -9,10 +9,10 @@ clean-local:
 		rm -rf *~ *.o *.out parser.d *_test
 
 scanner_test:	parser.o scanner.d node.o
-		gdc $(CFLAGS) -funittest -fdebug=scanner -o $@ scanner.d parser.o node.o
+		gdc $(CFLAGS) -fdebug=scanner -o $@ scanner.d parser.o node.o
 
 parser_test:	parser.d scanner.o node.o
-		gdc $(CFLAGS) -funittest -fdebug=parser -fdebug=lemon -o $@ parser.d  scanner.o node.o
+		gdc $(CFLAGS) -fdebug=parser -fdebug=lemon -o $@ parser.d  scanner.o node.o
 
 parser.d:	parser.lemon
 		lemon -ld -q $<
