@@ -271,68 +271,68 @@ class scanner_t {
 
 		int type;
 		switch (toUTF8 (lowercase)) {
-                case "and":		type = NODE_AND;	break;
-                case "break":		type = NODE_BREAK;	break;
-                case "continue":	type = NODE_CONTINUE;	break;
-                case "do":		type = NODE_DO;		break;
-                case "each":		type = NODE_EACH;	break;
-                case "elseif":		type = NODE_ELSEIF;	break;
-                case "else":		type = NODE_ELSE;	break;
-                case "enddo":		type = NODE_ENDDO;	break;
-                case "endfunction":	type = NODE_ENDFUNCTION; break;
-                case "endif":		type = NODE_ENDIF;	break;
-                case "endprocedure":	type = NODE_ENDPROCEDURE; break;
-                case "endtry":		type = NODE_ENDTRY;	break;
-                case "except":		type = NODE_EXCEPT;	break;
-                case "execute":		type = NODE_EXECUTE;	break;
-                case "export":		type = NODE_EXPORT;	break;
-                case "for":		type = NODE_FOR;	break;
-                case "function":	type = NODE_FUNCTION;	break;
-                case "goto":		type = NODE_GOTO;	break;
-                case "if":		type = NODE_IF;		break;
-                case "in":		type = NODE_IN;		break;
-                case "new":		type = NODE_NEW;	break;
-                case "not":		type = NODE_NOT;	break;
-                case "or":		type = NODE_OR;		break;
-                case "procedure":	type = NODE_PROCEDURE;	break;
-                case "raise":		type = NODE_RAISE;	break;
-                case "return":		type = NODE_RETURN;	break;
-                case "then":		type = NODE_THEN;	break;
-                case "to":		type = NODE_TO;		break;
-                case "try":		type = NODE_TRY;	break;
-                case "var":		type = NODE_VAR;	break;
-                case "while":		type = NODE_WHILE;	break;
-                case "возврат":		type = NODE_RETURN;	break;
-                case "вызватьисключение": type = NODE_RAISE;	break;
-                case "выполнить":	type = NODE_EXECUTE;	break;
-                case "для":		type = NODE_FOR;	break;
-                case "если":		type = NODE_IF;		break;
-                case "и":		type = NODE_AND;	break;
-                case "из":		type = NODE_IN;		break;
-                case "или":		type = NODE_OR;		break;
-                case "иначе":		type = NODE_ELSE;	break;
-                case "иначеесли":	type = NODE_ELSEIF;	break;
-                case "исключение":	type = NODE_EXCEPT;	break;
-                case "каждого":		type = NODE_EACH;	break;
-                case "конецесли":	type = NODE_ENDIF;	break;
-                case "конецпопытки":	type = NODE_ENDTRY;	break;
-                case "конецпроцедуры":	type = NODE_ENDPROCEDURE; break;
-                case "конецфункции":	type = NODE_ENDFUNCTION; break;
-                case "конеццикла":	type = NODE_ENDDO;	break;
-                case "не":		type = NODE_NOT;	break;
-                case "новый":		type = NODE_NEW;	break;
-                case "перейти":		type = NODE_GOTO;	break;
-                case "перем":		type = NODE_VAR;	break;
-                case "по":		type = NODE_TO;		break;
-                case "пока":		type = NODE_WHILE;	break;
-                case "попытка":		type = NODE_TRY;	break;
-                case "прервать":	type = NODE_BREAK;	break;
-                case "продолжить":	type = NODE_CONTINUE;	break;
-                case "процедура":	type = NODE_PROCEDURE;	break;
-                case "тогда":		type = NODE_THEN;	break;
-                case "функция":		type = NODE_FUNCTION;	break;
-                case "цикл":		type = NODE_DO;		break;
-                case "экспорт":		type = NODE_EXPORT;	break;
+		case "and":		type = NODE_AND;	break;
+		case "break":		type = NODE_BREAK;	break;
+		case "continue":	type = NODE_CONTINUE;	break;
+		case "do":		type = NODE_DO;		break;
+		case "each":		type = NODE_EACH;	break;
+		case "elseif":		type = NODE_ELSEIF;	break;
+		case "else":		type = NODE_ELSE;	break;
+		case "enddo":		type = NODE_ENDDO;	break;
+		case "endfunction":	type = NODE_ENDFUNCTION; break;
+		case "endif":		type = NODE_ENDIF;	break;
+		case "endprocedure":	type = NODE_ENDPROCEDURE; break;
+		case "endtry":		type = NODE_ENDTRY;	break;
+		case "except":		type = NODE_EXCEPT;	break;
+		case "execute":		type = NODE_EXECUTE;	break;
+		case "export":		type = NODE_EXPORT;	break;
+		case "for":		type = NODE_FOR;	break;
+		case "function":	type = NODE_FUNCTION;	break;
+		case "goto":		type = NODE_GOTO;	break;
+		case "if":		type = NODE_IF;		break;
+		case "in":		type = NODE_IN;		break;
+		case "new":		type = NODE_NEW;	break;
+		case "not":		type = NODE_NOT;	break;
+		case "or":		type = NODE_OR;		break;
+		case "procedure":	type = NODE_PROCEDURE;	break;
+		case "raise":		type = NODE_RAISE;	break;
+		case "return":		type = NODE_RETURN;	break;
+		case "then":		type = NODE_THEN;	break;
+		case "to":		type = NODE_TO;		break;
+		case "try":		type = NODE_TRY;	break;
+		case "var":		type = NODE_VAR;	break;
+		case "while":		type = NODE_WHILE;	break;
+		case "возврат":		type = NODE_RETURN;	break;
+		case "вызватьисключение": type = NODE_RAISE;	break;
+		case "выполнить":	type = NODE_EXECUTE;	break;
+		case "для":		type = NODE_FOR;	break;
+		case "если":		type = NODE_IF;		break;
+		case "и":		type = NODE_AND;	break;
+		case "из":		type = NODE_IN;		break;
+		case "или":		type = NODE_OR;		break;
+		case "иначе":		type = NODE_ELSE;	break;
+		case "иначеесли":	type = NODE_ELSEIF;	break;
+		case "исключение":	type = NODE_EXCEPT;	break;
+		case "каждого":		type = NODE_EACH;	break;
+		case "конецесли":	type = NODE_ENDIF;	break;
+		case "конецпопытки":	type = NODE_ENDTRY;	break;
+		case "конецпроцедуры":	type = NODE_ENDPROCEDURE; break;
+		case "конецфункции":	type = NODE_ENDFUNCTION; break;
+		case "конеццикла":	type = NODE_ENDDO;	break;
+		case "не":		type = NODE_NOT;	break;
+		case "новый":		type = NODE_NEW;	break;
+		case "перейти":		type = NODE_GOTO;	break;
+		case "перем":		type = NODE_VAR;	break;
+		case "по":		type = NODE_TO;		break;
+		case "пока":		type = NODE_WHILE;	break;
+		case "попытка":		type = NODE_TRY;	break;
+		case "прервать":	type = NODE_BREAK;	break;
+		case "продолжить":	type = NODE_CONTINUE;	break;
+		case "процедура":	type = NODE_PROCEDURE;	break;
+		case "тогда":		type = NODE_THEN;	break;
+		case "функция":		type = NODE_FUNCTION;	break;
+		case "цикл":		type = NODE_DO;		break;
+		case "экспорт":		type = NODE_EXPORT;	break;
 		default:		type = NODE_NAME;	break;
 		}
 		token = new lexeme_t (type, line0, col0, toUTF8 (name));
@@ -340,17 +340,6 @@ class scanner_t {
 
 	/*
 	 * Read number constant.
-	 * Decimal:               [0-9]+
-	 *      or  [0-9]+      ' [0-9]+
-	 *      or  [0-9]* [dD] ' [0-9]+
-	 *   Octal: [0-9]* [oO] ' [0-7]+
-	 *     Hex: [0-9]* [hH] ' [0-9a-fA-F]+
-	 *  Binary: [0-9]* [bB] ' [01]+
-	 * Examples:
-	 *	123	h'abc	o'765
-	 *	8'0	8h'55	b'1101
-	 *	d'567
-	 * Underscore is allowed after apostrophe.
 	 */
 	void number_constant (wchar c, int line0, int col0)
 	{
@@ -390,28 +379,25 @@ done:
 	}
 }
 
-unittest {
-	scanner_t scanner;
-
-	writefln ("Scanner unit test started.");
-	scanner = new scanner_t ("scanner.test");
-	for (;;) {
-		scanner.forward ();
-		if (! scanner.token)
-			break;
-		if (scanner.token.type < 0) {
-			writefln ("%s:%d:%d: %s", scanner.filename,
-				scanner.token.line, scanner.token.column,
-				scanner.token.text);
-			break;
-		}
-		scanner.token.print (0);
-	}
-}
-
 debug (scanner) {
 	void main()
 	{
+		scanner_t scanner;
+
+		writefln ("Scanner unit test started.");
+		scanner = new scanner_t ("scanner.test");
+		for (;;) {
+			scanner.forward ();
+			if (! scanner.token)
+				break;
+			if (scanner.token.type < 0) {
+				writefln ("%s:%d:%d: %s", scanner.filename,
+					scanner.token.line, scanner.token.column,
+					scanner.token.text);
+				break;
+			}
+			scanner.token.print (0);
+		}
 		writefln ("Scanner unit test finished.");
 	}
 }
