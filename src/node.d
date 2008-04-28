@@ -9,129 +9,23 @@ import parser;
  * Узел синтаксического дерева.
  */
 class node_t {
-	int type;	/* Код типа узла */
-
-	void print (int offset)
+	void print_offset (int offset)
 	{
 		for (int i=0; i<offset; ++i)
-			printf ("    ");
-		if (offset < 0)
-			offset = -offset;
-		if (! this) {
-			writefln ("(null)");
-			return;
-		}
-		writefln ("(%d)", type);
-	}
-}
-
-/*
- * Лексема входного файла.
- */
-class lexeme_t : node_t {
-	int line;	/* Номер строки входного файла */
-	int column;	/* Номер позиции в строке входного файла */
-	string text;	/* Что было прочитано из входного файла */
-
-	this (int t, int l, int c, string txt) {
-		type = t;
-		line = l;
-		column = c;
-		text = txt;
+			writef ("    ");
 	}
 
-	void print (int offset)
-	{
-		for (int i=0; i<offset; ++i)
-			printf ("    ");
-		if (offset < 0)
-			offset = -offset;
-		if (! this) {
-			writefln ("(null)");
-			return;
-		}
-		switch (type) {
-		case NODE_AND:		writef ("AND");			break;
-		case NODE_BREAK:	writef ("BREAK");		break;
-		case NODE_CONTINUE:	writef ("CONTINUE");		break;
-		case NODE_DO:		writef ("DO");			break;
-		case NODE_EACH:		writef ("EACH");		break;
-		case NODE_ELSE:		writef ("ELSE");		break;
-		case NODE_ELSEIF:	writef ("ELSEIF");		break;
-		case NODE_ENDDO:	writef ("ENDDO");		break;
-		case NODE_ENDFUNCTION:	writef ("ENDFUNCTION");		break;
-		case NODE_ENDIF:	writef ("ENDIF");		break;
-		case NODE_ENDPROCEDURE:	writef ("ENDPROCEDURE");	break;
-		case NODE_ENDTRY:	writef ("ENDTRY");		break;
-		case NODE_EXCEPT:	writef ("EXCEPT");		break;
-		case NODE_EXECUTE:	writef ("EXECUTE");		break;
-		case NODE_EXPORT:	writef ("EXPORT");		break;
-		case NODE_FOR:		writef ("FOR");			break;
-		case NODE_FUNCTION:	writef ("FUNCTION");		break;
-		case NODE_GOTO:		writef ("GOTO");		break;
-		case NODE_IF:		writef ("IF");			break;
-		case NODE_IN:		writef ("IN");			break;
-		case NODE_NEW:		writef ("NEW");			break;
-		case NODE_NOT:		writef ("NOT");			break;
-		case NODE_OR:		writef ("OR");			break;
-		case NODE_PROCEDURE:	writef ("PROCEDURE");		break;
-		case NODE_RAISE:	writef ("RAISE");		break;
-		case NODE_RETURN:	writef ("RETURN");		break;
-		case NODE_THEN:		writef ("THEN");		break;
-		case NODE_TO:		writef ("TO");			break;
-		case NODE_TRY:		writef ("TRY");			break;
-		case NODE_VAR:		writef ("VAR");			break;
-		case NODE_WHILE:	writef ("WHILE");		break;
-		case NODE_NAME:		writef ("NAME %s", text);	break;
-		default:
-			if (text.length > 0)
-				writef ("%s ", text);
-			writef ("(%d)", type);
-			break;
-		}
-		if (line)
-			writef (" (%d:%d)", line, column);
-		writefln ("");
-	}
-}
-
-/*
- * Числовая константа.
- */
-class number_t : lexeme_t {
-	double value;
-
-	this (double v, int l, int c, string txt) {
-		super (NODE_NUMBER, l, c, txt);
-		value = v;
-	}
-
-	override void print (int offset)
-	{
-		for (int i=0; i<offset; ++i)
-			printf ("    ");
-		if (offset < 0)
-			offset = -offset;
-		if (! this) {
-			writefln ("(null)");
-			return;
-		}
-		writef ("NUMBER %g", value);
-		if (line)
-			writef (" (%d:%d)", line, column);
-		writefln ("");
-	}
+	void print (int offset) {}
 }
 
 /*
  * Узел с двумя ветвями.
  */
-class binary_node_t : node_t {
+class list_t : node_t {
 	node_t left;
 	node_t right;
 
-	this (int t, node_t l=null, node_t r=null) {
-		type = t;
+	this (node_t l=null, node_t r=null) {
 		left = l;
 		right = r;
 	}
@@ -140,27 +34,176 @@ class binary_node_t : node_t {
 	 * Print a readable representation of the tree
 	 * for debugging purposes.
 	 */
-	void print (int offset)
+	override void print (int offset)
 	{
-		for (int i=0; i<offset; ++i)
-			printf ("    ");
-		if (offset < 0)
-			offset = -offset;
+		print_offset (offset);
 		if (! this) {
 			writefln ("(null)");
 			return;
 		}
-		switch (type) {
-		case NODE_COMMA:	writef ("COMMA");		break;
-		case NODE_PROCEDURE:	writef ("PROCEDURE");		break;
-		case NODE_FUNCTION:	writef ("FUNCTION");		break;
-		case NODE_ARG:		writef ("ARG");			break;
-		default:		writef ("(%d)", type);		break;
-		}
-		writefln ("");
+		writefln ("LIST");
+		if (offset < 0)
+			offset = -offset;
 		if (left)
 			left.print (offset + 1);
 		if (right)
 			right.print (offset + 1);
+	}
+}
+
+/*
+ * Числовая константа.
+ */
+class number_t : node_t {
+	double value;
+
+	this (double v) {
+		value = v;
+	}
+
+	override void print (int offset)
+	{
+		print_offset (offset);
+		if (! this) {
+			writefln ("(null)");
+			return;
+		}
+		writefln ("NUMBER %g", value);
+	}
+}
+
+/*
+ * Объявление переменной.
+ */
+class name_t : node_t {
+	string name;
+	bool global;
+
+	this (string n, bool exported) {
+		name = n;
+		global = exported;
+	}
+
+	override void print (int offset)
+	{
+		print_offset (offset);
+		if (! this) {
+			writefln ("(null)");
+			return;
+		}
+		writefln ("NAME %s%s", name, global ? ", export" : "");
+	}
+}
+
+/*
+ * Формальный аргумент функции.
+ */
+class arg_t : node_t {
+	string name;
+	bool by_value;
+	node_t default_value;
+
+	this (string n, bool val, node_t defval) {
+		name = n;
+		by_value = val;
+		default_value = defval;
+	}
+
+	override void print (int offset)
+	{
+		print_offset (offset);
+		if (! this) {
+			writefln ("(null)");
+			return;
+		}
+		writef ("%s%s", by_value ? "value " : "", name);
+		if (default_value) {
+			writef (" = ");
+			default_value.print (0);
+		}
+	}
+}
+
+/*
+ * Объявление процедуры или функции.
+ */
+class function_t : node_t {
+	string name;
+	bool global;
+	bool func;
+	node_t arguments;
+	node_t declarations;
+	node_t operators;
+
+	this (string n, bool exported, bool f, node_t args,
+	    node_t decls, node_t ops) {
+		name = n;
+		global = exported;
+		func = f;
+		arguments = args;
+		declarations = decls;
+		operators = ops;
+	}
+
+	private void print_args (node_t node)
+	{
+		for (;;) {
+			list_t list = cast(list_t) node;
+			if (! list)
+				break;
+			print_args (list.left);
+			writef (", ");
+			node = list.right;
+		}
+		node.print (0);
+	}
+
+	private void print_decls (node_t node, int offset)
+	{
+		for (;;) {
+			list_t list = cast(list_t) node;
+			if (! list)
+				break;
+			print_decls (list.left, offset);
+			node = list.right;
+		}
+		name_t name = cast(name_t) node;
+		if (name) {
+			print_offset (offset);
+			writefln ("VAR %s%s", name.name,
+				name.global ? ", export" : "");
+		} else
+			node.print (offset);
+	}
+
+	private void print_ops (node_t node, int offset)
+	{
+		for (;;) {
+			list_t list = cast(list_t) node;
+			if (! list)
+				break;
+			print_ops (list.left, offset);
+			node = list.right;
+		}
+		node.print (offset);
+	}
+
+	override void print (int offset)
+	{
+		print_offset (offset);
+		if (! this) {
+			writefln ("(null)");
+			return;
+		}
+		writef ("%s %s (", func ? "FUNCTION" : "PROCEDURE", name);
+		if (arguments)
+			print_args (arguments);
+		writefln (")%s", global ? ", export" : "");
+		if (offset < 0)
+			offset = -offset;
+		if (declarations)
+			print_decls (declarations, offset + 1);
+		if (operators)
+			print_ops (operators, offset + 1);
 	}
 }
