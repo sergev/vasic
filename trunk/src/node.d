@@ -15,7 +15,7 @@ class node_t {
 			writef ("    ");
 	}
 
-	void print (int offset) {}
+	abstract void print (int offset);
 }
 
 /*
@@ -34,7 +34,7 @@ class list_t : node_t {
 	 * Print a readable representation of the tree
 	 * for debugging purposes.
 	 */
-	override void print (int offset)
+	void print (int offset)
 	{
 		print_offset (offset);
 		if (! this) {
@@ -61,7 +61,7 @@ class number_t : node_t {
 		value = v;
 	}
 
-	override void print (int offset)
+	void print (int offset)
 	{
 		print_offset (offset);
 		if (! this) {
@@ -84,7 +84,7 @@ class name_t : node_t {
 		global = exported;
 	}
 
-	override void print (int offset)
+	void print (int offset)
 	{
 		print_offset (offset);
 		if (! this) {
@@ -109,7 +109,7 @@ class arg_t : node_t {
 		default_value = defval;
 	}
 
-	override void print (int offset)
+	void print (int offset)
 	{
 		print_offset (offset);
 		if (! this) {
@@ -188,7 +188,7 @@ class function_t : node_t {
 		node.print (offset);
 	}
 
-	override void print (int offset)
+	void print (int offset)
 	{
 		print_offset (offset);
 		if (! this) {
