@@ -4,6 +4,6 @@ var y, z;
 procedure foo ()
 endprocedure
 
-function bar ()
+function bar (x, y)
 	var a;
 endfunction

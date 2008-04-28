@@ -5,22 +5,67 @@ import std.stream;
 import std.string;
 import std.uni;
 import std.utf;
-import node;
-import parser;
 private import std.c.stdlib;
+
+enum {
+	LEX_NUMBER = 256,
+	LEX_NAME,
+	LEX_STRING,
+	LEX_LABEL,
+	LEX_LE,
+	LEX_GE,
+	LEX_NEQ,
+}
+
+/*
+ * Lexeme read from input file.
+ */
+class lexeme_t {
+	int type;	/* Lexeme type */
+	int line;	/* Source line number */
+	int column;	/* Source column position */
+	string source;	/* As read from source file */
+	double number;	/* Value for number constants */
+	string text;	/* Value for identifiers, labels and string literals */
+
+	this (int t, string src) {
+		type = t;
+		line = 0;
+		column = 0;
+		source = src;
+	}
+
+	void print (int offset)
+	{
+		for (int i=0; i<offset; ++i)
+			printf ("    ");
+		if (offset < 0)
+			offset = -offset;
+		if (! this) {
+			writefln ("(null)");
+			return;
+		}
+		if (source.length > 0)
+			writef ("%s ", source);
+		writef ("(%d)", type);
+		if (line)
+			writef (" (%d:%d)", line, column);
+		writefln ("");
+	}
+}
 
 /*
  * Lexical scanner.
  */
 class scanner_t {
 	lexeme_t token;
-	private lexeme_t next;
-	private wchar backchar;
+	string filename;
 	int line;
 	int column;
-	string filename;
-	BufferedFile file;
-	int tab_width = 8;
+	int tab_width;
+	private lexeme_t next;
+	private wchar backchar;
+	private BufferedFile file;
 
 	/*
 	 * Open a file for parsing.
@@ -30,9 +75,10 @@ class scanner_t {
 		filename = name;
 		line = 1;
 		column = 1;
+		tab_width = 8;
 		token = null;
-		next = null;
-		backchar = 0;
+                next = null;
+                backchar = 0;
 	}
 
 	/*
@@ -115,16 +161,20 @@ class scanner_t {
 	void forward ()
 	{
 		if (next !is null) {
+			/* Return back token. */
 			token = next;
 			next = null;
 			return;
 		}
 		token = null;
 		for (;;) {
-			int line0 = line;
-			int col0 = column;
+			/* Remember a line and column where this lexeme starts. */
+			int lex_line = line;
+			int lex_col = column;
+
 			wchar c = file_getc();
 			if (file.eof ()) {
+				/* On end of file, return null token. */
 				return;
 			}
 			switch (c) {
@@ -133,101 +183,72 @@ class scanner_t {
 			case '\t':
 			case '\f':
 			case '\r':
+				/* Skip spaces. */
 				continue;
-			case '/':
-				c = file_getc();
-				if (c == '/') {
-					// Skip comment to end-of-line.
-					while (! file.eof()) {
-						if (file_getc() == '\n')
-							break;
-					}
-					continue;
-				}
-				file_ungetc (c);
-				token = new lexeme_t (NODE_DIV, line0, col0, "/");
-				return;
-			case '+':
-				token = new lexeme_t (NODE_PLUS, line0, col0, "+");
-				return;
-			case '-':
-				token = new lexeme_t (NODE_MINUS, line0, col0, "-");
-				return;
-			case '*':
-				token = new lexeme_t (NODE_MUL, line0, col0, "*");
-				return;
-			case '%':
-				token = new lexeme_t (NODE_MOD, line0, col0, "%");
-				return;
-			case '=':
-				token = new lexeme_t (NODE_EQUAL, line0, col0, "=");
-				return;
+			case '+': case '-': case '*': case '%':
+			case '(': case ')': case '[': case ']':
+			case '=': case ',': case '.': case ':':
+			case ';': case '?':
+				token = new lexeme_t (c, [cast(char)c]);
+				break;
+                        case '/':
+                                c = file_getc();
+                                if (c == '/') {
+                                        /* Skip comment to end-of-line. */
+                                        while (! file.eof()) {
+                                                if (file_getc() == '\n')
+                                                        break;
+                                        }
+                                        continue;
+                                }
+                                file_ungetc (c);
+                                token = new lexeme_t ('/', "/");
+                                break;
 			case '<':
 				c = file_getc();
 				if (c == '=') {
-					token = new lexeme_t (NODE_LE, line0, col0, "<=");
+					token = new lexeme_t (LEX_LE, "<=");
 				} else if (c == '>') {
-					token = new lexeme_t (NODE_NEQ, line0, col0, "<>");
+					token = new lexeme_t (LEX_NEQ, "<>");
 				} else {
 					file_ungetc (c);
-					token = new lexeme_t (NODE_LT, line0, col0, "<");
+					token = new lexeme_t ('<', "<");
 				}
-				return;
+				break;
 			case '>':
 				c = file_getc();
 				if (c == '=') {
-					token = new lexeme_t (NODE_GE, line0, col0, ">=");
+					token = new lexeme_t (LEX_GE, ">=");
 				} else {
 					file_ungetc (c);
-					token = new lexeme_t (NODE_GT, line0, col0, ">");
+					token = new lexeme_t ('>', ">");
 				}
-				return;
-			case '(':
-				token = new lexeme_t (NODE_LPAR, line0, col0, "(");
-				return;
-			case ')':
-				token = new lexeme_t (NODE_RPAR, line0, col0, ")");
-				return;
-			case '[':
-				token = new lexeme_t (NODE_LBRA, line0, col0, "[");
-				return;
-			case ']':
-				token = new lexeme_t (NODE_RBRA, line0, col0, "]");
-				return;
-			case ',':
-				token = new lexeme_t (NODE_COMMA, line0, col0, ",");
-				return;
-			case '.':
-				token = new lexeme_t (NODE_DOT, line0, col0, ".");
-				return;
-			case ':':
-				token = new lexeme_t (NODE_COLON, line0, col0, ":");
-				return;
-			case ';':
-				token = new lexeme_t (NODE_SEMICOLON, line0, col0, ";");
-				return;
-			case '?':
-				token = new lexeme_t (NODE_QUESTION, line0, col0, "?");
-				return;
+				break;
 			case '0': case '1': case '2': case '3': case '4':
 			case '5': case '6': case '7': case '8': case '9':
-				number_constant (c, line0, col0);
-				return;
+				number_constant (c);
+				break;
 			case '"':
-				string_literal (line0, col0);
-				return;
+				string_literal ();
+				break;
 			case '~':
-				label (line0, col0);
-				return;
+				label ();
+				break;
 			default:
-				if (isUniAlpha(c) || c == '_') {
-					identifier (c, line0, col0);
-					return;
+				if (! isUniAlpha(c) && c != '_') {
+					/* Invalid character, return token type -1. */
+					token = new lexeme_t (-1,
+						format ("Unexpected character %04x", c));
+					break;
 				}
-				token = new lexeme_t (-1, line0, col0,
-					format ("Unexpected character '%c'", c));
-				return;
+				identifier (c);
+				break;
 			}
+
+			/* We have a token. */
+			token.line = lex_line;
+			token.column = lex_col;
+			return;
 		}
 	}
 
@@ -236,7 +257,7 @@ class scanner_t {
 	 * Characters allowed: a-z, A-Z, 0-9, _
 	 * Detect keywords.
 	 */
-	void identifier (wchar c, int line0, int col0)
+	void identifier (wchar c)
 	{
 		wchar[] name;
 		int len, n;
@@ -269,93 +290,28 @@ class scanner_t {
 		for (n=0; n<lowercase.length; ++n)
 			lowercase[n] = toUniLower (lowercase[n]);
 
-		int type;
-		switch (toUTF8 (lowercase)) {
-		case "and":		type = NODE_AND;	break;
-		case "break":		type = NODE_BREAK;	break;
-		case "continue":	type = NODE_CONTINUE;	break;
-		case "do":		type = NODE_DO;		break;
-		case "each":		type = NODE_EACH;	break;
-		case "elseif":		type = NODE_ELSEIF;	break;
-		case "else":		type = NODE_ELSE;	break;
-		case "enddo":		type = NODE_ENDDO;	break;
-		case "endfunction":	type = NODE_ENDFUNCTION; break;
-		case "endif":		type = NODE_ENDIF;	break;
-		case "endprocedure":	type = NODE_ENDPROCEDURE; break;
-		case "endtry":		type = NODE_ENDTRY;	break;
-		case "except":		type = NODE_EXCEPT;	break;
-		case "execute":		type = NODE_EXECUTE;	break;
-		case "export":		type = NODE_EXPORT;	break;
-		case "for":		type = NODE_FOR;	break;
-		case "function":	type = NODE_FUNCTION;	break;
-		case "goto":		type = NODE_GOTO;	break;
-		case "if":		type = NODE_IF;		break;
-		case "in":		type = NODE_IN;		break;
-		case "new":		type = NODE_NEW;	break;
-		case "not":		type = NODE_NOT;	break;
-		case "or":		type = NODE_OR;		break;
-		case "procedure":	type = NODE_PROCEDURE;	break;
-		case "raise":		type = NODE_RAISE;	break;
-		case "return":		type = NODE_RETURN;	break;
-		case "then":		type = NODE_THEN;	break;
-		case "to":		type = NODE_TO;		break;
-		case "try":		type = NODE_TRY;	break;
-		case "var":		type = NODE_VAR;	break;
-		case "while":		type = NODE_WHILE;	break;
-		case "возврат":		type = NODE_RETURN;	break;
-		case "вызватьисключение": type = NODE_RAISE;	break;
-		case "выполнить":	type = NODE_EXECUTE;	break;
-		case "для":		type = NODE_FOR;	break;
-		case "если":		type = NODE_IF;		break;
-		case "и":		type = NODE_AND;	break;
-		case "из":		type = NODE_IN;		break;
-		case "или":		type = NODE_OR;		break;
-		case "иначе":		type = NODE_ELSE;	break;
-		case "иначеесли":	type = NODE_ELSEIF;	break;
-		case "исключение":	type = NODE_EXCEPT;	break;
-		case "каждого":		type = NODE_EACH;	break;
-		case "конецесли":	type = NODE_ENDIF;	break;
-		case "конецпопытки":	type = NODE_ENDTRY;	break;
-		case "конецпроцедуры":	type = NODE_ENDPROCEDURE; break;
-		case "конецфункции":	type = NODE_ENDFUNCTION; break;
-		case "конеццикла":	type = NODE_ENDDO;	break;
-		case "не":		type = NODE_NOT;	break;
-		case "новый":		type = NODE_NEW;	break;
-		case "перейти":		type = NODE_GOTO;	break;
-		case "перем":		type = NODE_VAR;	break;
-		case "по":		type = NODE_TO;		break;
-		case "пока":		type = NODE_WHILE;	break;
-		case "попытка":		type = NODE_TRY;	break;
-		case "прервать":	type = NODE_BREAK;	break;
-		case "продолжить":	type = NODE_CONTINUE;	break;
-		case "процедура":	type = NODE_PROCEDURE;	break;
-		case "тогда":		type = NODE_THEN;	break;
-		case "функция":		type = NODE_FUNCTION;	break;
-		case "цикл":		type = NODE_DO;		break;
-		case "экспорт":		type = NODE_EXPORT;	break;
-		default:		type = NODE_NAME;	break;
-		}
-		token = new lexeme_t (type, line0, col0, toUTF8 (name));
+		token = new lexeme_t (LEX_NAME, toUTF8 (name));
+		token.text = toUTF8 (lowercase);
 	}
 
 	/*
 	 * Read number constant.
 	 */
-	void number_constant (wchar c, int line0, int col0)
+	void number_constant (wchar c)
 	{
-		string text;
+		string source;
 		int len, n;
 		int is_digit (wchar c) {
 			return (c >= '0' && c <= '9');
 		}
 		void append_char (char c) {
-			if (n >= text.length)
-				text.length = n + 16;
-			text [n++] = c;
+			if (n >= source.length)
+				source.length = n + 16;
+			source [n++] = c;
 		}
 
 		len = 16;
-		text.length = len;
+		source.length = len;
 		n = 0;
 		while (c >= '0' && c <= '9' || c == '.') {
 			append_char (c);
@@ -366,15 +322,16 @@ class scanner_t {
 		file_ungetc (c);
 done:
 		append_char ('\0');
-		text.length = n;
-		token = new number_t (strtod (text.ptr, null), line0, col0, text);
+		source.length = n;
+		token = new lexeme_t (LEX_NUMBER, source);
+		token.number = strtod (source.ptr, null);
 	}
 
-	void string_literal (int line0, int col0)
+	void string_literal ()
 	{
 	}
 
-	void label (int line0, int col0)
+	void label ()
 	{
 	}
 }
@@ -393,7 +350,7 @@ debug (scanner) {
 			if (scanner.token.type < 0) {
 				writefln ("%s:%d:%d: %s", scanner.filename,
 					scanner.token.line, scanner.token.column,
-					scanner.token.text);
+					scanner.token.source);
 				break;
 			}
 			scanner.token.print (0);
