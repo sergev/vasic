@@ -47,6 +47,8 @@ class lexeme_t {
 		}
 		if (source.length > 0)
 			writef ("%s ", source);
+		else if (type == LEX_STRING)
+			writef ("\"%s\" ", text);
 		writef ("(%d)", type);
 		if (line)
 			writef (" (%d:%d)", line, column);
@@ -231,17 +233,22 @@ class scanner_t {
 			case '"':
 				string_literal ();
 				break;
-			case '~':
-				label ();
-				break;
 			default:
-				if (! isUniAlpha(c) && c != '_') {
+				if (! isUniAlpha(c) && c != '_' && c != '~') {
 					/* Invalid character, return token type -1. */
 					token = new lexeme_t (-1,
 						format ("Unexpected character %04x", c));
 					break;
 				}
 				identifier (c);
+				if (c == '~') {
+					if (token.source.length < 2) {
+						token = new lexeme_t (-1,
+							format ("Invalid label"));
+						break;
+					}
+					token.type = LEX_LABEL;
+				}
 				break;
 			}
 
@@ -268,7 +275,6 @@ class scanner_t {
 
 		len = 16;
 		name = new wchar [len];
-		name.length = 16;
 		n = 0;
 		name [n++] = c;
 		for (;;) {
@@ -329,10 +335,39 @@ done:
 
 	void string_literal ()
 	{
-	}
+		wchar[] text;
+		int len, n;
 
-	void label ()
-	{
+		len = 40;
+		text = new wchar [len];
+		n = 0;
+		while (! file.eof ()) {
+			wchar c = file_getc ();
+			if (c == '\n') {
+				/* Continuation line starts with bar. */
+				while (! file.eof () && c != '|')
+					c = file_getc ();
+				continue;
+			}
+			if (c == '"') {
+				/* Quote is encoded as two quotes. */
+				if (file.eof ())
+					break;
+				c = file_getc ();
+				if (c != '"') {
+					/* End of string. */
+					file_ungetc (c);
+					break;
+				}
+			}
+			if (n >= text.length)
+				text.length = n + 40;
+			text [n++] = c;
+		}
+		text.length = n;
+
+		token = new lexeme_t (LEX_STRING, "");
+		token.text = toUTF8 (text);
 	}
 }
 
