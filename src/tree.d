@@ -1,4 +1,4 @@
-module node;
+module tree;
 
 import std.stdio;
 import std.stream;
