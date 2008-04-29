@@ -1,3 +1,7 @@
+/*
+ * Lexical analyzer for Vasic language.
+ * Copyright (GPL) 2008 Serge Vakulenko <serge@vak.ru>
+ */
 module scanner;
 
 import std.stdio;
@@ -8,13 +12,13 @@ import std.utf;
 private import std.c.stdlib;
 
 enum {
-	LEX_NUMBER = 256,
-	LEX_NAME,
-	LEX_STRING,
-	LEX_LABEL,
-	LEX_LE,
-	LEX_GE,
-	LEX_NEQ,
+	LEX_NUMBER = 256,	/* Number literal */
+	LEX_STRING,		/* String literal */
+	LEX_NAME,		/* Identifier */
+	LEX_LABEL,		/* ~Label */
+	LEX_LE,			/* <= */
+	LEX_GE,			/* >= */
+	LEX_NEQ,		/* <> */
 }
 
 /*
@@ -30,25 +34,21 @@ class lexeme_t {
 
 	this (int t, string src) {
 		type = t;
+		source = src;
 		line = 0;
 		column = 0;
-		source = src;
 	}
 
-	void print (int offset)
+	void print ()
 	{
-		for (int i=0; i<offset; ++i)
-			printf ("    ");
-		if (offset < 0)
-			offset = -offset;
 		if (! this) {
 			writefln ("(null)");
 			return;
 		}
-		if (source.length > 0)
-			writef ("%s ", source);
-		else if (type == LEX_STRING)
+		if (type == LEX_STRING)
 			writef ("\"%s\" ", text);
+		else if (source.length > 0)
+			writef ("%s ", source);
 		writef ("(%d)", type);
 		if (line)
 			writef (" (%d:%d)", line, column);
@@ -65,9 +65,8 @@ class scanner_t {
 	int line;
 	int column;
 	int tab_width;
-	private lexeme_t next;
-	private wchar backchar;
 	private BufferedFile file;
+	private wchar backchar;
 
 	/*
 	 * Open a file for parsing.
@@ -79,82 +78,7 @@ class scanner_t {
 		column = 1;
 		tab_width = 8;
 		token = null;
-                next = null;
-                backchar = 0;
-	}
-
-	/*
-	 * Read a character from a file, using UTF-8 encoding.
-	 * Also track the line and column numbers.
-	 */
-	wchar file_getc ()
-	{
-		wchar c;
-
-		if (backchar) {
-			c = backchar;
-			backchar = 0;
-		} else {
-			c = file.getc();
-			if (c & 0x80) {
-				uint c2 = file.getc();
-				if (! (c & 0x20))
-					c = (c & 0x1f) << 6 | (c2 & 0x3f);
-				else {
-					uint c3 = file.getc();
-					c = (c & 0x0f) << 12 |
-						(c2 & 0x3f) << 6 | (c3 & 0x3f);
-				}
-			}
-		}
-		switch (c) {
-		default:
-			column++;
-			break;
-		case '\n':
-			line++;
-			column = 1;
-			break;
-		case '\t':
-			column += tab_width - 1;
-			column = column / tab_width * tab_width + 1;
-			break;
-		case '\f':
-		case '\r':
-			break;
-		}
-		return c;
-	}
-
-	/*
-	 * Put a character "back" into a file..
-	 * Also decrease the line and column numbers.
-	 */
-	void file_ungetc (wchar c)
-	{
-		backchar = c;
-		switch (c) {
-		default:
-			column--;
-			break;
-		case '\n':
-			line--;
-			break;
-		case '\f':
-		case '\r':
-			break;
-		}
-	}
-
-	/*
-	 * Put current token "back" into an input stream.
-	 */
-	void back ()
-	{
-		if (token !is null) {
-			next = token;
-			token = null;
-		}
+		backchar = 0;
 	}
 
 	/*
@@ -162,12 +86,6 @@ class scanner_t {
 	 */
 	void forward ()
 	{
-		if (next !is null) {
-			/* Return back token. */
-			token = next;
-			next = null;
-			return;
-		}
 		token = null;
 		for (;;) {
 			/* Remember a line and column where this lexeme starts. */
@@ -235,14 +153,17 @@ class scanner_t {
 				break;
 			default:
 				if (! isUniAlpha(c) && c != '_' && c != '~') {
-					/* Invalid character, return token type -1. */
-					token = new lexeme_t (-1,
-						format ("Unexpected character %04x", c));
+					/* Invalid character, return token -1. */
+					string message = (c>' ' && c<='~') ?
+						format ("Unexpected character %c", c) :
+						format ("Unexpected character %04x", c);
+					token = new lexeme_t (-1, message);
 					break;
 				}
 				identifier (c);
 				if (c == '~') {
 					if (token.source.length < 2) {
+						/* No label name after ~. */
 						token = new lexeme_t (-1,
 							format ("Invalid label"));
 						break;
@@ -262,9 +183,8 @@ class scanner_t {
 	/*
 	 * Read identifier.
 	 * Characters allowed: a-z, A-Z, 0-9, _
-	 * Detect keywords.
 	 */
-	void identifier (wchar c)
+	private void identifier (wchar c)
 	{
 		wchar[] name;
 		int len, n;
@@ -303,7 +223,7 @@ class scanner_t {
 	/*
 	 * Read number constant.
 	 */
-	void number_constant (wchar c)
+	private void number_constant (wchar c)
 	{
 		string source;
 		int len, n;
@@ -333,7 +253,10 @@ done:
 		token.number = strtod (source.ptr, null);
 	}
 
-	void string_literal ()
+	/*
+	 * Read a string literal "...".
+	 */
+	private void string_literal ()
 	{
 		wchar[] text;
 		int len, n;
@@ -369,9 +292,75 @@ done:
 		token = new lexeme_t (LEX_STRING, "");
 		token.text = toUTF8 (text);
 	}
+
+	/*
+	 * Read a character from a file, using UTF-8 encoding.
+	 * Also track the line and column numbers.
+	 */
+	private wchar file_getc ()
+	{
+		wchar c;
+
+		if (backchar) {
+			c = backchar;
+			backchar = 0;
+		} else {
+			c = file.getc();
+			if (c & 0x80) {
+				uint c2 = file.getc();
+				if (! (c & 0x20))
+					c = (c & 0x1f) << 6 | (c2 & 0x3f);
+				else {
+					uint c3 = file.getc();
+					c = (c & 0x0f) << 12 |
+						(c2 & 0x3f) << 6 | (c3 & 0x3f);
+				}
+			}
+		}
+		switch (c) {
+		default:
+			column++;
+			break;
+		case '\n':
+			line++;
+			column = 1;
+			break;
+		case '\t':
+			column += tab_width - 1;
+			column = column / tab_width * tab_width + 1;
+			break;
+		case '\f':
+		case '\r':
+			break;
+		}
+		return c;
+	}
+
+	/*
+	 * Put a character "back" into a file..
+	 * Also decrease the line and column numbers.
+	 */
+	private void file_ungetc (wchar c)
+	{
+		backchar = c;
+		switch (c) {
+		default:
+			column--;
+			break;
+		case '\n':
+			line--;
+			break;
+		case '\f':
+		case '\r':
+			break;
+		}
+	}
 }
 
 debug (scanner) {
+	/*
+	 * Run a simple test of scanner.
+	 */
 	void main()
 	{
 		scanner_t scanner;
@@ -383,12 +372,13 @@ debug (scanner) {
 			if (! scanner.token)
 				break;
 			if (scanner.token.type < 0) {
-				writefln ("%s:%d:%d: %s", scanner.filename,
-					scanner.token.line, scanner.token.column,
+				writefln ("%s:%d:%d: Syntax error: %s",
+					scanner.filename, scanner.token.line,
+					scanner.token.column,
 					scanner.token.source);
 				break;
 			}
-			scanner.token.print (0);
+			scanner.token.print ();
 		}
 		writefln ("Scanner unit test finished.");
 	}
