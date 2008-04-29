@@ -230,6 +230,9 @@ term ::= NEW NAME LPAR optional_expressions RPAR.
 term ::= NEW LPAR expressions RPAR.
 
 %code {
+/*
+ * Преобразование типа лексемы, распознавание зарезервированных слов.
+ */
 int lexeme_type (lexeme_t lex)
 {
 	switch (lex.type) {
@@ -330,6 +333,9 @@ int lexeme_type (lexeme_t lex)
 }
 
 debug (parser) {
+	/*
+	 * Простой тест синтаксического анализатора.
+	 */
 	void main()
 	{
 		writefln ("Parser unit test started.");

@@ -1,3 +1,7 @@
+/*
+ * Структуры данных для построения синтаксического дерева.
+ * Copyright (GPL) 2008 Serge Vakulenko <serge@vak.ru>
+ */
 module tree;
 
 import std.stdio;
